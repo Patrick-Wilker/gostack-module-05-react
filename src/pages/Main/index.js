@@ -13,6 +13,22 @@ export default class Main extends Component{
         loading: false,
     }
 
+    componentDidMount(){
+        const repositories = localStorage.getItem('repositories')
+
+        if(repositories){
+            this.setState({repositories: JSON.parse(repositories)})
+        }
+    }
+
+    componentDidUpdate(_, prevState){
+        const {repositories} = this.state
+
+        if(prevState.repositories != repositories){
+            localStorage.setItem('repositories', JSON.stringify(repositories))
+        }
+    }
+
     handleInputChange = e =>{
         this.setState({newRepo: e.target.value})
     }
@@ -24,17 +40,36 @@ export default class Main extends Component{
 
         const {newRepo, repositories} = this.state
 
-        const response = await api.get(`/repos/${newRepo}`)
+        let response
 
-        const data = {
+        await api.get(`/repos/${newRepo}`, {validateStatus: () => true}).then(function (res) {
+            console.log(res.status);
+            response = res
+
+        })
+
+        if(response.status != 200){
+            alert('Não foi possível encontrar esse repositório. Certifique-se de estar nos seguintes padrões User/Repository.')
+            this.setState({
+                newRepo: '',
+                repositories: [...repositories],
+                loading: false,
+            })
+            return
+        }
+
+        let data
+
+        data = {
             name: response.data.full_name,
         }
 
         this.setState({
-            repositories: [...repositories, data],
             newRepo: '',
+            repositories: [...repositories, data],
             loading: false,
         })
+
     }
 
     render (){
@@ -67,7 +102,7 @@ export default class Main extends Component{
                 </Form>
 
                 <List>
-                    {repositories.map(repository => (
+                    {repositories && repositories.map(repository => (
                         <li key={repository.name}>
                             <span>{repository.name}</span>
                             <a href="">Detalhes</a>
