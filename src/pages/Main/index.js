@@ -13,6 +13,7 @@ export default class Main extends Component{
         newRepo: '',
         repositories: [],
         loading: false,
+        error: false,
     }
 
     componentDidMount(){
@@ -38,26 +39,38 @@ export default class Main extends Component{
     handleSubmit = async e => {
         e.preventDefault()
 
-        this.setState({loading: true})
+        this.setState({loading: true, error: false})
 
         const {newRepo, repositories} = this.state
 
+
+
         let response
 
-        await api.get(`/repos/${newRepo}`, {validateStatus: () => true}).then(function (res) {
-            console.log(res.status);
-            response = res
+        try{
+            repositories.map(repository => {
+                if(repository.name == newRepo){
+                    this.setState({
+                        newRepo: '',
+                        repositories: [...repositories],
+                        loading: false,
+                        error: true,
+                    })
 
-        })
+                    throw new Error('Repositório duplicado')
+                }
+            })
 
-        if(response.status != 200){
-            alert('Não foi possível encontrar esse repositório. Certifique-se de estar nos seguintes padrões User/Repository.')
+            response =  await api.get(`/repos/${newRepo}`)
+
+        }catch(err){
             this.setState({
                 newRepo: '',
                 repositories: [...repositories],
                 loading: false,
+                error: true,
             })
-            return
+            return response
         }
 
         let data
@@ -70,12 +83,13 @@ export default class Main extends Component{
             newRepo: '',
             repositories: [...repositories, data],
             loading: false,
+            error: false,
         })
 
     }
 
     render (){
-        const {newRepo, repositories ,loading} = this.state
+        const {newRepo, repositories ,loading, error} = this.state
 
         return (
             <Container>
@@ -84,7 +98,7 @@ export default class Main extends Component{
                     Repositórios
                 </h1>
 
-                <Form onSubmit={this.handleSubmit}>
+                <Form onSubmit={this.handleSubmit} error={error}>
                     <input
                         type="text"
                         placeholder="Adicionar repositório"
@@ -92,7 +106,7 @@ export default class Main extends Component{
                         onChange={this.handleInputChange}
                     />
 
-                    <SubmitButton loading={loading}>
+                    <SubmitButton loading={loading} error={error}>
 
                         { loading ? (
                             <FaSpinner color="#FFF" size={14} />
