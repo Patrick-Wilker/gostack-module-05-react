@@ -13,7 +13,7 @@ export default class Main extends Component{
         newRepo: '',
         repositories: [],
         loading: false,
-        error: false,
+        error: false
     }
 
     componentDidMount(){
